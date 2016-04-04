@@ -1,10 +1,14 @@
 #!/usr/bin/env ruby
 
 # TODO require bundler?
+# TODO include cover image, pass to pandoc
 require 'open-uri'
-require 'open_uri_redirections'
+require 'io/wait'
 require 'yaml'
 require 'optparse'
+
+require 'rubygems'
+require 'open_uri_redirections'
 require 'mechanize'
 require 'addressable/uri'
 require 'hashie'
@@ -20,22 +24,22 @@ HTML_HEADER = <<EOF
 EOF
 HTML_FOOTER = "</body>\n</html>"
 
-# TODO load config: first piped, then arg -c, then default
-options = {
-  sleep_time: 0.1,
-  output_directory: '.',
-  css_file: "http://github.com/Huluk/blog-to-ebook/css.css",
-  conversion_command: "pandoc -s -c %3$s -o %2$s.epub %1$s",
-}
-config = YAML.load(File.read('config.yml'))
-options = Hashie::Mash.new(options.merge config)
+options = Hashie::Mash.new({
+  'sleep_time' => 0.1,
+  'output_directory' => '.',
+  'css_file' => "http://github.com/Huluk/blog-to-ebook/css.css",
+  'conversion_command' => "pandoc -s -c %3$s -o %2$s.epub %1$s",
+})
+local_config = File.join(File.dirname(__FILE__), 'config.yml')
+if File.exist? local_config
+  options.merge! YAML.load(File.read(local_config))
+end
  
 optparse = OptionParser.new do|opts|
   opts.banner = "Usage: #{$0} [-c config] -o output_directory"
 
   opts.on('-c', '--config CONFIG', 'path to configuration file') do |config|
-    # TODO error handling
-    options.config = YAML.load(File.read(config))
+    options.config = config
   end
 
   opts.on('-o', '--output PATH', 'write path') do |path|
@@ -49,6 +53,24 @@ optparse = OptionParser.new do|opts|
 end
 
 optparse.parse!
+
+if options.config?
+  begin
+    options.merge! YAML.load(File.read(options.config))
+  rescue LoadError
+    $stderr.puts "no such file: #{options.config}"; exit
+  rescue Psych::SyntaxError, TypeError => e
+    $stderr.puts "cannot read config file: #{e.message}"; exit
+  end
+end
+
+if $stdin.ready?
+  begin
+    options.merge! YAML.load($stdin.read)
+  rescue Psych::SyntaxError, TypeError => e
+    $stderr.puts "invalid config syntax in stdin: #{e.message}"; exit
+  end
+end
 
 unless File.directory?(options.output_directory)
   Dir.mkdir(options.output_directory)
@@ -86,20 +108,24 @@ def download_images_and_update_urls(document, outdir)
     outfile = File.join(outdir, "#{url.hash}#{extension}")
     img['src'] = outfile
     File.open(outfile, 'w') do |file|
-      # TODO error handling
-      file.write(read_url(url))
+      begin
+        file.write(read_url(url))
+      rescue
+        $stderr.puts "error while saving image: #{url}"
+      end
     end
   end
   return document
 end
 
 regex = /#{options.toc_regex}/i
-links = toc_url_to_chapter_links(options.toc_url, options.content_path, regex)[0..3]
-puts links.join("\n")
+links = toc_url_to_chapter_links( options.toc_url, options.content_path, regex)
 
+puts 'downloading:'
 titles = []
 contents = []
 links.each do |url|
+  puts url
   document = Nokogiri::HTML.parse(read_url(url))
   titles << document.at(options.title_path)
   contents << document.at(options.content_path)
@@ -123,4 +149,5 @@ File.open(html_file, 'w') do |file|
   file.write book
 end
 
-system(options.conversion_command % [html_file, options.filename, options.css_file])
+system(options.conversion_command %
+       [html_file, options.filename, options.css_file])

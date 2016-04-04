@@ -1,0 +1,10 @@
+title: Unsong
+author: Scott Alexander
+filename: unsong
+base_url: "http://unsongbook.com"
+toc_url: "http://unsongbook.com"
+toc_regex: "unsongbook.*(interlude|chapter|prolog|epilog|arc)[^#]*$"
+title_path: ".pjgm-posttitle"
+content_path: ".pjgm-postcontent"
+garbage_path: "sharedaddy"
+chapter_title_format: "<h1 class='chapter_title'>%s</h1>"

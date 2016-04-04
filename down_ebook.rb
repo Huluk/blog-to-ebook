@@ -1,14 +1,12 @@
 #!/usr/bin/env ruby
 
-APP_NAME = './down_ebook' # TODO rename
-
 # TODO require bundler?
-# TODO make dir for images, what then?
 require 'open-uri'
+require 'open_uri_redirections'
 require 'yaml'
 require 'optparse'
 require 'mechanize'
-require 'addressable'
+require 'addressable/uri'
 require 'hashie'
 
 HTML_HEADER = <<EOF
@@ -22,17 +20,18 @@ HTML_HEADER = <<EOF
 EOF
 HTML_FOOTER = "</body>\n</html>"
 
-# TODO load config: first piped, then arg -c, then local, then default
+# TODO load config: first piped, then arg -c, then default
 options = {
   sleep_time: 0.1,
   output_directory: '.',
-  conversion_command: "pandoc -s -c css.css -o %s.epub %s",
+  css_file: "http://github.com/Huluk/blog-to-ebook/css.css",
+  conversion_command: "pandoc -s -c %3$s -o %2$s.epub %1$s",
 }
 config = YAML.load(File.read('config.yml'))
 options = Hashie::Mash.new(options.merge config)
  
 optparse = OptionParser.new do|opts|
-  opts.banner = "Usage: #{APP_NAME} [-c config] -o output_directory"
+  opts.banner = "Usage: #{$0} [-c config] -o output_directory"
 
   opts.on('-c', '--config CONFIG', 'path to configuration file') do |config|
     # TODO error handling
@@ -51,7 +50,9 @@ end
 
 optparse.parse!
 
-# TODO ensure output path exists
+unless File.directory?(options.output_directory)
+  Dir.mkdir(options.output_directory)
+end
 
 def toc_url_to_chapter_links(toc_url, path, regex)
   browser = Mechanize.new
@@ -62,9 +63,10 @@ end
 
 def read_url(url)
   begin
-    return open(url).read
+    return open(url, allow_redirections: :all).read
   rescue URI::InvalidURIError
-    return open(Addressable::URI.encode_component(url)).read
+    url = Addressable::URI.encode_component(url)
+    return open(url, allow_redirections: :all).read
   end
 end
 
@@ -79,8 +81,8 @@ end
 
 def download_images_and_update_urls(document, outdir)
   document.search('img').each do |img|
-    url = img['src']
-    extension = File.extname(url).gsub(/\?.*$/,'')
+    url = img['src'].gsub(/\?.*$/,'')
+    extension = File.extname(url)
     outfile = File.join(outdir, "#{url.hash}#{extension}")
     img['src'] = outfile
     File.open(outfile, 'w') do |file|
@@ -93,6 +95,7 @@ end
 
 regex = /#{options.toc_regex}/i
 links = toc_url_to_chapter_links(options.toc_url, options.content_path, regex)[0..3]
+puts links.join("\n")
 
 titles = []
 contents = []
@@ -104,6 +107,7 @@ links.each do |url|
 end
 
 image_dir = File.join(options.output_directory, 'images')
+Dir.mkdir(image_dir) unless File.directory?(image_dir)
 contents.map!{ |content|
   content = clean_document(content, options.garbage_path)
   download_images_and_update_urls(content, image_dir)
@@ -119,4 +123,4 @@ File.open(html_file, 'w') do |file|
   file.write book
 end
 
-system(options.conversion_command % [options.filename, html_file])
+system(options.conversion_command % [html_file, options.filename, options.css_file])

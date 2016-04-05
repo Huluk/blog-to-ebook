@@ -107,11 +107,14 @@ def download_images_and_update_urls(document, outdir)
     extension = File.extname(url)
     outfile = File.join(outdir, "#{url.hash}#{extension}")
     img['src'] = outfile
-    File.open(outfile, 'w') do |file|
-      begin
-        file.write(read_url(url))
-      rescue
-        $stderr.puts "error while saving image: #{url}"
+    unless File.exist?
+      File.open(outfile, 'w') do |file|
+        begin
+          file.write(read_url(url))
+        rescue Exception => e
+          $stderr.puts "error while saving image: #{url}\n" +
+            "#{e.class}: #{e.message}"
+        end
       end
     end
   end

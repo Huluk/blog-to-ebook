@@ -9,7 +9,7 @@ use autodie;
 my $mech = WWW::Mechanize->new();
 my $start_chapter = 0;
 my $bookname = 'Twig (pt2) by Wildbow';
-my $bookurl = 'https://twigserial.wordpress.com/category/story/arc-11-cut-to-the-quick/11-01/';
+my $bookurl = 'https://twigserial.wordpress.com/2014/12/24/taking-root-1-1/';
 
 if (@ARGV == 1) {
     $start_chapter = $ARGV[0];

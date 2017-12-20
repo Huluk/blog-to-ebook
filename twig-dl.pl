@@ -7,6 +7,7 @@ use HTML::TreeBuilder::XPath;
 use autodie;
 
 my $mech = WWW::Mechanize->new();
+$mech->ssl_opts(verify_hostname => 0);
 my $start_chapter = 0;
 my $bookname = 'Twig by Wildbow';
 my $bookurl = 'https://twigserial.wordpress.com/2014/12/24/taking-root-1-1/';

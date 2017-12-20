@@ -1,0 +1,10 @@
+title: Tales of Demons & Gods
+author: "Wuxiaworld: Thyearia"
+filename: wuxia_tdg
+base_url: "http://www.wuxiaworld.com"
+toc_url: "http://www.wuxiaworld.com/tdg-index/"
+toc_regex: "tdg-index/tdg-chapter-([1-4]?[0-9]|50)/$"
+title_path: "strong"
+content_path: "//div[@itemprop='articleBody']"
+garbage_path: ".//span[@style='float: right']"
+chapter_title_format: '<h1 class="chapter_title">%s</h1>'

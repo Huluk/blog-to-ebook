@@ -1,0 +1,10 @@
+title: The Fifth Defiance
+author: Walter
+filename: fifthdefiance
+base_url: "http://thefifthdefiance.com"
+toc_url: "https://thefifthdefiance.com/chapters"
+toc_regex: "/\\d{4}/"
+title_path: ".//h1[@class='entry-title']"
+content_path: ".//div[@class='entry-content']"
+garbage_path: ".//div[@class='sharedaddy sd-sharing-enabled']"
+chapter_title_format: '<h1 class="chapter">%s</h1>'

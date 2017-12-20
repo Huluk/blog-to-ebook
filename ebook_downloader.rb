@@ -80,7 +80,8 @@ def toc_url_to_chapter_links(toc_url, path, regex)
   browser = Mechanize.new
   toc = browser.get(toc_url).at(path)
   links = toc.search('a').map{ |link| link['href'] }
-  return links.keep_if{ |u| u =~ regex }.uniq
+  links.keep_if{ |u| u =~ regex }
+  return links.uniq
 end
 
 def read_url(url)
@@ -107,7 +108,7 @@ def download_images_and_update_urls(document, outdir)
     extension = File.extname(url)
     outfile = File.join(outdir, "#{url.hash}#{extension}")
     img['src'] = outfile
-    unless File.exist?
+    unless File.exist? outfile
       File.open(outfile, 'w') do |file|
         begin
           file.write(read_url(url))
@@ -122,7 +123,7 @@ def download_images_and_update_urls(document, outdir)
 end
 
 regex = /#{options.toc_regex}/i
-links = toc_url_to_chapter_links( options.toc_url, options.content_path, regex)
+links = toc_url_to_chapter_links(options.toc_url, options.content_path, regex)
 
 puts 'downloading:'
 titles = []
@@ -142,7 +143,7 @@ contents.map!{ |content|
   download_images_and_update_urls(content, image_dir)
 }
 titles.map!{ |title| options.chapter_title_format % title.text }
-contents.map! &:inner_html
+contents.map!(&:inner_html)
 book = (HTML_HEADER % [options.title, options.author]) +
   titles.zip(contents).map(&:join).join +
   HTML_FOOTER
